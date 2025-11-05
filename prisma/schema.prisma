@@ -5,11 +5,123 @@
 // Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
 
 generator client {
-  provider = "prisma-client"
-  output   = "../generated/prisma"
+  provider = "prisma-client-js"
 }
 
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
+}
+
+model Campaña {
+  id        String    @id @default(uuid())
+  nombre    String
+  user_id   String
+  creado_en DateTime  @default(now())
+
+  encuestas Encuesta[]
+
+  @@map("campaña")
+}
+
+model Encuesta {
+  id          String      @id @default(uuid())
+  nombre      String
+  descripcion String
+  user_id     String
+  activo      Boolean     @default(true)
+  creado_en   DateTime    @default(now())
+  campañaId   String?
+  canalId     String?
+
+  campaña     Campaña?     @relation(fields: [campañaId], references: [id])
+  canal       Canal?       @relation(fields: [canalId], references: [id])
+  preguntas   Pregunta[]
+  entregas    Entrega[]
+
+  @@map("encuesta")
+}
+
+model Pregunta {
+  id              String          @id @default(uuid())
+  orden           Int
+  texto           String
+  obligatorio     Boolean          @default(false)
+  encuestaId      String
+  tipo_preguntaId String
+
+  encuesta        Encuesta         @relation(fields: [encuestaId], references: [id])
+  tipo_pregunta   TipoPregunta     @relation(fields: [tipo_preguntaId], references: [id])
+  opciones        OpcionEncuesta[]
+
+  @@map("preguntas")
+}
+
+model TipoPregunta {
+  id        String     @id @default(uuid())
+  nombre    String
+  preguntas Pregunta[]
+
+  @@map("tipo_pregunta")
+}
+
+model OpcionEncuesta {
+  id          String     @id @default(uuid())
+  texto       String
+  valor       String
+  preguntaId  String
+
+  pregunta    Pregunta   @relation(fields: [preguntaId], references: [id])
+  respuestas  Respuesta[]
+
+  @@map("opcion_encuesta")
+}
+
+model Entrega {
+  id             String       @id @default(uuid())
+  enviado_en     DateTime?
+  respondido_en  DateTime?
+  encuestaId     String
+  destinatarioId String
+
+  encuesta       Encuesta     @relation(fields: [encuestaId], references: [id])
+  destinatario   Destinatario @relation(fields: [destinatarioId], references: [id])
+  respuestas     Respuesta[]
+
+  @@map("entrega")
+}
+
+model Destinatario {
+  id         String     @id @default(uuid())
+  nombre     String
+  telefono   String
+  email      String
+  user_id    String
+  creado_en  DateTime    @default(now())
+
+  entregas   Entrega[]
+
+  @@map("destinatario")
+}
+
+model Canal {
+  id        String    @id @default(uuid())
+  nombre    String
+  encuestas Encuesta[]
+
+  @@map("canal")
+}
+
+model Respuesta {
+  id              String     @id @default(uuid())
+  texto           String
+  numero          Int?
+  recibido_en     DateTime?
+  entregaId       String
+  opcionEncuestaId String?
+
+  entrega         Entrega    @relation(fields: [entregaId], references: [id])
+  opcion_encuesta OpcionEncuesta? @relation(fields: [opcionEncuestaId], references: [id])
+
+  @@map("respuesta")
 }
