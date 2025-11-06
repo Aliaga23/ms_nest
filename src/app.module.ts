@@ -5,17 +5,18 @@ import { AppService } from './app.service';
 import { PrismaModule } from './prisma/prisma.module';
 import { CanalModule } from './canal/canal.module';
 import { TipoPreguntaModule } from './tipo_pregunta/tipo-pregunta.module';
+import { UsuarioService } from './usuario/usuario.service';
 
 @Module({
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
     }),
-    PrismaModule, 
-    CanalModule, 
+    PrismaModule,
+    CanalModule,
     TipoPreguntaModule
   ],
   controllers: [AppController],
-  providers: [AppService],
+  providers: [AppService, UsuarioService],
 })
 export class AppModule { }
