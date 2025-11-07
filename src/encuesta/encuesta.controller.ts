@@ -1,5 +1,15 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, HttpException, HttpStatus } from '@nestjs/common';
-import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
+import {
+    Controller,
+    Get,
+    Post,
+    Body,
+    Patch,
+    Param,
+    Delete,
+    HttpException,
+    HttpStatus,
+} from '@nestjs/common';
+import { ApiBearerAuth, ApiTags, ApiBody } from '@nestjs/swagger';
 import { EncuestaService } from './encuesta.service';
 import { CreateEncuestaDto } from './dto/create-encuesta.dto';
 import { UpdateEncuestaDto } from './dto/update-encuesta.dto';
@@ -26,6 +36,30 @@ export class EncuestaController {
     }
 
     @Post()
+    @ApiBody({
+        description: 'Crea una nueva encuesta vinculada al usuario autenticado.',
+        type: CreateEncuestaDto,
+        examples: {
+            ejemplo1: {
+                summary: 'Encuesta básica de satisfacción',
+                value: {
+                    nombre: 'Satisfacción de atención al cliente',
+                    descripcion: 'Encuesta para medir la experiencia del cliente con el servicio.',
+                    campañaId: 'b4c2f9c8-74aa-4f0b-b65e-01fdc22a51d3',
+                    canalId: 'c8a7d3e2-54b1-43c6-b123-9dc8f2e5a7c1',
+                    activo: true,
+                },
+            },
+            ejemplo2: {
+                summary: 'Encuesta interna de empleados',
+                value: {
+                    nombre: 'Evaluación del ambiente laboral',
+                    descripcion: 'Formulario para conocer la percepción del personal sobre su entorno de trabajo.',
+                    activo: false,
+                },
+            },
+        },
+    })
     async create(
         @Body() createEncuestaDto: CreateEncuestaDto,
         @AuthHeader() authHeader: string,
@@ -51,6 +85,20 @@ export class EncuestaController {
     }
 
     @Patch(':id')
+    @ApiBody({
+        description: 'Actualiza los datos de una encuesta específica.',
+        type: UpdateEncuestaDto,
+        examples: {
+            ejemplo: {
+                summary: 'Actualizar nombre y descripción de encuesta',
+                value: {
+                    nombre: 'Encuesta de experiencia de usuario',
+                    descripcion: 'Actualización del cuestionario para versión 2025.',
+                    activo: true,
+                },
+            },
+        },
+    })
     async update(
         @Param('id') id: string,
         @Body() updateEncuestaDto: UpdateEncuestaDto,

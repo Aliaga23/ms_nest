@@ -1,5 +1,5 @@
 import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/common';
-import { ApiTags } from '@nestjs/swagger';
+import { ApiTags, ApiBody } from '@nestjs/swagger';
 import { TipoPreguntaService } from './tipo-pregunta.service';
 import { CreateTipoPreguntaDto } from './dto/create-tipo-pregunta.dto';
 import { UpdateTipoPreguntaDto } from './dto/update-tipo-pregunta.dto';
@@ -10,6 +10,24 @@ export class TipoPreguntaController {
     constructor(private readonly tipoPreguntaService: TipoPreguntaService) { }
 
     @Post()
+    @ApiBody({
+        description: 'Crea un nuevo tipo de pregunta que podrá usarse al definir preguntas de encuestas.',
+        type: CreateTipoPreguntaDto,
+        examples: {
+            ejemplo1: {
+                summary: 'Tipo de pregunta de opción múltiple',
+                value: { nombre: 'Opción múltiple' },
+            },
+            ejemplo2: {
+                summary: 'Tipo de pregunta abierta',
+                value: { nombre: 'Abierta' },
+            },
+            ejemplo3: {
+                summary: 'Tipo de pregunta con escala numérica',
+                value: { nombre: 'Escala (1 a 5)' },
+            },
+        },
+    })
     create(@Body() createTipoPreguntaDto: CreateTipoPreguntaDto) {
         return this.tipoPreguntaService.create(createTipoPreguntaDto);
     }
@@ -25,6 +43,16 @@ export class TipoPreguntaController {
     }
 
     @Patch(':id')
+    @ApiBody({
+        description: 'Actualiza el nombre del tipo de pregunta existente.',
+        type: UpdateTipoPreguntaDto,
+        examples: {
+            ejemplo: {
+                summary: 'Cambio de nombre del tipo',
+                value: { nombre: 'Pregunta condicional' },
+            },
+        },
+    })
     update(@Param('id') id: string, @Body() updateTipoPreguntaDto: UpdateTipoPreguntaDto) {
         return this.tipoPreguntaService.update(id, updateTipoPreguntaDto);
     }
