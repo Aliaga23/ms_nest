@@ -4,10 +4,15 @@ import { CreateEntregaDto } from './dto/create-entrega.dto';
 import { UpdateEntregaDto } from './dto/update-entrega.dto';
 import { EmailService } from '../email/email.service';
 import { generateEmailTemplate } from '../email/email.template';
+import { ConfigService } from '@nestjs/config';
 
 @Injectable()
 export class EntregaService {
-    constructor(private readonly prisma: PrismaService, private readonly emailService: EmailService) { }
+    constructor(
+        private readonly prisma: PrismaService,
+        private readonly emailService: EmailService,
+        private readonly configService: ConfigService,
+    ) { }
 
     async create(dto: CreateEntregaDto, userId: string) {
         // Verificar que la encuesta pertenece al usuario
@@ -32,8 +37,7 @@ export class EntregaService {
 
         // Verificar si el canal de la encuesta es "e-mail"
         if (encuesta.canalId === 'c06a090c-2997-429f-b4c4-45928529bfd8') {
-            const emailContent = generateEmailTemplate(destinatario.nombre, encuesta.nombre, entrega.id);
-
+            const emailContent = generateEmailTemplate(destinatario.nombre, encuesta.nombre, entrega.id, this.configService);
             await this.emailService.sendEmail(destinatario.email, `Te invitamos a responder una encuesta: ${encuesta.nombre}`, emailContent);
         }
 

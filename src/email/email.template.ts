@@ -1,5 +1,8 @@
-export function generateEmailTemplate(destinatario: string, campaña: string, entregaId: string): string {
-  const enlace = `https://example.com/${entregaId}`;
+import { ConfigService } from '@nestjs/config';
+
+export function generateEmailTemplate(destinatario: string, campaña: string, entregaId: string, configService: ConfigService): string {
+  const frontUrl = configService.get<string>('FRONT_URL') || 'https://example.com';
+  const enlace = `${frontUrl}/${entregaId}`;
   return `
     <!DOCTYPE html>
     <html>
