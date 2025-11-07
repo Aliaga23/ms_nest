@@ -1,9 +1,13 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, Headers, HttpException, HttpStatus } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, HttpException, HttpStatus } from '@nestjs/common';
+import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { EncuestaService } from './encuesta.service';
 import { CreateEncuestaDto } from './dto/create-encuesta.dto';
 import { UpdateEncuestaDto } from './dto/update-encuesta.dto';
 import { UsuarioService } from '../usuario/usuario.service';
+import { AuthHeader } from '../auth/auth-header.decorator';
 
+@ApiTags('Encuestas')
+@ApiBearerAuth()
 @Controller('api/encuesta')
 export class EncuestaController {
     constructor(
@@ -24,20 +28,20 @@ export class EncuestaController {
     @Post()
     async create(
         @Body() createEncuestaDto: CreateEncuestaDto,
-        @Headers('authorization') authHeader: string,
+        @AuthHeader() authHeader: string,
     ) {
         const userId = await this.extractUserId(authHeader);
         return this.encuestaService.create(createEncuestaDto, userId);
     }
 
     @Get()
-    async findAll(@Headers('authorization') authHeader: string) {
+    async findAll(@AuthHeader() authHeader: string) {
         const userId = await this.extractUserId(authHeader);
         return this.encuestaService.findAllByUser(userId);
     }
 
     @Get(':id')
-    async findOne(@Param('id') id: string, @Headers('authorization') authHeader: string) {
+    async findOne(@Param('id') id: string, @AuthHeader() authHeader: string) {
         const userId = await this.extractUserId(authHeader);
         const encuesta = await this.encuestaService.findOneByUser(id, userId);
         if (!encuesta) {
@@ -50,14 +54,14 @@ export class EncuestaController {
     async update(
         @Param('id') id: string,
         @Body() updateEncuestaDto: UpdateEncuestaDto,
-        @Headers('authorization') authHeader: string,
+        @AuthHeader() authHeader: string,
     ) {
         const userId = await this.extractUserId(authHeader);
         return this.encuestaService.updateByUser(id, userId, updateEncuestaDto);
     }
 
     @Delete(':id')
-    async remove(@Param('id') id: string, @Headers('authorization') authHeader: string) {
+    async remove(@Param('id') id: string, @AuthHeader() authHeader: string) {
         const userId = await this.extractUserId(authHeader);
         return this.encuestaService.removeByUser(id, userId);
     }

@@ -1,9 +1,13 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, Headers, HttpException, HttpStatus } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, HttpException, HttpStatus } from '@nestjs/common';
+import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { CampanaService } from './campana.service';
 import { CreateCampanaDto } from './dto/create-campana.dto';
 import { UpdateCampanaDto } from './dto/update-campana.dto';
 import { UsuarioService } from '../usuario/usuario.service';
+import { AuthHeader } from '../auth/auth-header.decorator';
 
+@ApiTags('Campañas')
+@ApiBearerAuth()
 @Controller('api/campana')
 export class CampanaController {
     constructor(
@@ -27,7 +31,7 @@ export class CampanaController {
     @Post()
     async create(
         @Body() createCampanaDto: CreateCampanaDto,
-        @Headers('authorization') authHeader: string,
+        @AuthHeader() authHeader: string,
     ) {
         const userId = await this.extractUserId(authHeader);
         return this.campanaService.create(createCampanaDto, userId);
@@ -35,14 +39,14 @@ export class CampanaController {
 
 
     @Get()
-    async findAll(@Headers('authorization') authHeader: string) {
+    async findAll(@AuthHeader() authHeader: string) {
         const userId = await this.extractUserId(authHeader);
         return this.campanaService.findAllByUser(userId);
     }
 
 
     @Get(':id')
-    async findOne(@Param('id') id: string, @Headers('authorization') authHeader: string) {
+    async findOne(@Param('id') id: string, @AuthHeader() authHeader: string) {
         const userId = await this.extractUserId(authHeader);
         const campaña = await this.campanaService.findOneByUser(id, userId);
         if (!campaña) {
@@ -56,7 +60,7 @@ export class CampanaController {
     async update(
         @Param('id') id: string,
         @Body() updateCampanaDto: UpdateCampanaDto,
-        @Headers('authorization') authHeader: string,
+        @AuthHeader() authHeader: string,
     ) {
         const userId = await this.extractUserId(authHeader);
         return this.campanaService.updateByUser(id, userId, updateCampanaDto);
@@ -64,7 +68,7 @@ export class CampanaController {
 
 
     @Delete(':id')
-    async remove(@Param('id') id: string, @Headers('authorization') authHeader: string) {
+    async remove(@Param('id') id: string, @AuthHeader() authHeader: string) {
         const userId = await this.extractUserId(authHeader);
         return this.campanaService.removeByUser(id, userId);
     }

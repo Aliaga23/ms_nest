@@ -1,8 +1,10 @@
 import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/common';
+import { ApiTags } from '@nestjs/swagger';
 import { TipoPreguntaService } from './tipo-pregunta.service';
 import { CreateTipoPreguntaDto } from './dto/create-tipo-pregunta.dto';
 import { UpdateTipoPreguntaDto } from './dto/update-tipo-pregunta.dto';
 
+@ApiTags('Tipos de Pregunta')
 @Controller('api/tipo-pregunta')
 export class TipoPreguntaController {
     constructor(private readonly tipoPreguntaService: TipoPreguntaService) { }
