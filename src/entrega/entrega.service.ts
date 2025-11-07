@@ -2,10 +2,12 @@ import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateEntregaDto } from './dto/create-entrega.dto';
 import { UpdateEntregaDto } from './dto/update-entrega.dto';
+import { EmailService } from '../email/email.service';
+import { generateEmailTemplate } from '../email/email.template';
 
 @Injectable()
 export class EntregaService {
-    constructor(private readonly prisma: PrismaService) { }
+    constructor(private readonly prisma: PrismaService, private readonly emailService: EmailService) { }
 
     async create(dto: CreateEntregaDto, userId: string) {
         // Verificar que la encuesta pertenece al usuario
@@ -24,9 +26,18 @@ export class EntregaService {
             throw new HttpException('Destinatario no encontrado o sin permisos', HttpStatus.FORBIDDEN);
         }
 
-        return this.prisma.entrega.create({
+        const entrega = await this.prisma.entrega.create({
             data: dto,
         });
+
+        // Verificar si el canal de la encuesta es "e-mail"
+        if (encuesta.canalId === 'c06a090c-2997-429f-b4c4-45928529bfd8') {
+            const emailContent = generateEmailTemplate(destinatario.nombre, encuesta.nombre, entrega.id);
+
+            await this.emailService.sendEmail(destinatario.email, `Te invitamos a responder una encuesta: ${encuesta.nombre}`, emailContent);
+        }
+
+        return entrega;
     }
 
     async findAllByUser(userId: string) {
