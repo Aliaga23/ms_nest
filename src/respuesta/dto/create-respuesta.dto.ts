@@ -11,7 +11,8 @@ import {
 export class CreateRespuestaDto {
     @ApiProperty({
         example: 'Excelente atención y rapidez en la entrega.',
-        description: 'Texto libre de la respuesta (solo para preguntas abiertas).',
+        description:
+            'Texto libre de la respuesta (solo para preguntas abiertas).',
         required: false,
     })
     @IsOptional()
@@ -22,7 +23,7 @@ export class CreateRespuestaDto {
     @ApiProperty({
         example: 5,
         description:
-            'Valor numérico asociado a la respuesta (por ejemplo, escala de 1 a 5).',
+            'Valor numérico asociado a la respuesta (por ejemplo, una escala de 1 a 5). Solo aplica a preguntas de tipo numérico.',
         required: false,
     })
     @IsOptional()
@@ -55,8 +56,9 @@ export class CreateRespuestaDto {
     @ApiProperty({
         example: 'b4c2f9c8-74aa-4f0b-b65e-01fdc22a51d3',
         description:
-            'ID de la opción elegida, si la pregunta es de tipo selección (opcional).',
+            'ID de la opción elegida, solo si la pregunta es de tipo selección (opcional en preguntas abiertas).',
         required: false,
+        nullable: true,
     })
     @IsOptional()
     @IsUUID()
