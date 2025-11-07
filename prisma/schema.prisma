@@ -53,6 +53,7 @@ model Pregunta {
   encuesta        Encuesta         @relation(fields: [encuestaId], references: [id])
   tipo_pregunta   TipoPregunta     @relation(fields: [tipo_preguntaId], references: [id])
   opciones        OpcionEncuesta[]
+  respuestas Respuesta[]
 
   @@map("preguntas")
 }
@@ -113,15 +114,17 @@ model Canal {
 }
 
 model Respuesta {
-  id              String     @id @default(uuid())
-  texto           String
-  numero          Int?
-  recibido_en     DateTime?
-  entregaId       String
-  opcionEncuestaId String?
+  id               String          @id @default(uuid())
+  texto            String?         
+  numero           Int?
+  recibido_en      DateTime?
+  entregaId        String
+  preguntaId       String          // relación obligatoria con Pregunta
+  opcionEncuestaId String?         // opcional (si la respuesta viene de una opción)
 
-  entrega         Entrega    @relation(fields: [entregaId], references: [id])
-  opcion_encuesta OpcionEncuesta? @relation(fields: [opcionEncuestaId], references: [id])
+  entrega          Entrega         @relation(fields: [entregaId], references: [id])
+  pregunta         Pregunta        @relation(fields: [preguntaId], references: [id])
+  opcion_encuesta  OpcionEncuesta? @relation(fields: [opcionEncuestaId], references: [id])
 
   @@map("respuesta")
 }
