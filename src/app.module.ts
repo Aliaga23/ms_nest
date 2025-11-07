@@ -8,6 +8,11 @@ import { TipoPreguntaModule } from './tipo_pregunta/tipo-pregunta.module';
 import { UsuarioService } from './usuario/usuario.service';
 import { CampanaModule } from './campaña/campana.module';
 import { EncuestaModule } from './encuesta/encuesta.module';
+import { PreguntaModule } from './pregunta/pregunta.module';
+import { OpcionEncuestaModule } from './opcion-encuesta/opcion-encuesta.module';
+import { RespuestaModule } from './respuesta/respuesta.module';
+import { EntregaModule } from './entrega/entrega.module';
+import { DestinatarioModule } from './destinatario/destinatario.module';
 
 @Module({
   imports: [
@@ -18,7 +23,12 @@ import { EncuestaModule } from './encuesta/encuesta.module';
     CanalModule,
     TipoPreguntaModule,
     CampanaModule,
-    EncuestaModule
+    EncuestaModule,
+    PreguntaModule,
+    OpcionEncuestaModule,
+    RespuestaModule,
+    EntregaModule,
+    DestinatarioModule
   ],
   controllers: [AppController],
   providers: [AppService, UsuarioService],
