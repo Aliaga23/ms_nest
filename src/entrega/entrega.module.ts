@@ -5,9 +5,10 @@ import { PrismaModule } from '../prisma/prisma.module';
 import { UsuarioService } from '../usuario/usuario.service';
 import { ConfigModule } from '@nestjs/config';
 import { EmailService } from '../email/email.service';
+import { PdfModule } from '../pdf/pdf.module';
 
 @Module({
-    imports: [PrismaModule, ConfigModule],
+    imports: [PrismaModule, ConfigModule, PdfModule],
     controllers: [EntregaController],
     providers: [EntregaService, UsuarioService, EmailService],
 })

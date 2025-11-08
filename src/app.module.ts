@@ -13,6 +13,8 @@ import { OpcionEncuestaModule } from './opcion-encuesta/opcion-encuesta.module';
 import { RespuestaModule } from './respuesta/respuesta.module';
 import { EntregaModule } from './entrega/entrega.module';
 import { DestinatarioModule } from './destinatario/destinatario.module';
+import { HttpModule } from '@nestjs/axios';
+import { BulkRegisterModule } from './bulk-register/bulk-register.module';
 
 @Module({
   imports: [
@@ -28,7 +30,9 @@ import { DestinatarioModule } from './destinatario/destinatario.module';
     OpcionEncuestaModule,
     RespuestaModule,
     EntregaModule,
-    DestinatarioModule
+    DestinatarioModule,
+    HttpModule,
+    BulkRegisterModule
   ],
   controllers: [AppController],
   providers: [AppService, UsuarioService],

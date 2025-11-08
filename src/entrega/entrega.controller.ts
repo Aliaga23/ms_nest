@@ -8,13 +8,16 @@ import {
     Delete,
     HttpException,
     HttpStatus,
+    Res,
 } from '@nestjs/common';
-import { ApiBearerAuth, ApiTags, ApiBody } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiTags, ApiBody, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { EntregaService } from './entrega.service';
 import { CreateEntregaDto } from './dto/create-entrega.dto';
+import { CreateBulkEntregaDto } from './dto/create-bulk-entrega.dto';
 import { UpdateEntregaDto } from './dto/update-entrega.dto';
 import { UsuarioService } from '../usuario/usuario.service';
 import { AuthHeader } from '../auth/auth-header.decorator';
+import type { Response } from 'express';
 
 @ApiTags('Entregas')
 @ApiBearerAuth()
@@ -106,5 +109,48 @@ export class EntregaController {
     async remove(@Param('id') id: string, @AuthHeader() authHeader: string) {
         const userId = await this.extractUserId(authHeader);
         return this.entregaService.removeByUser(id, userId);
+    }
+
+    @Post('bulk-ocr')
+    @ApiOperation({ summary: 'Generar entregas masivas para OCR con PDF' })
+    @ApiResponse({ 
+        status: 201, 
+        description: 'PDF generado exitosamente',
+        content: {
+            'application/pdf': {
+                schema: {
+                    type: 'string',
+                    format: 'binary',
+                },
+            },
+        },
+    })
+    @ApiBody({
+        description: 'Genera múltiples entregas para OCR y devuelve un PDF con códigos QR',
+        type: CreateBulkEntregaDto,
+        examples: {
+            ejemplo: {
+                summary: 'Generar 30 entregas para OCR',
+                value: {
+                    encuestaId: '5e4b4a32-1f3b-4971-9f0b-4a90f05ac2b7',
+                    cantidad: 30,
+                },
+            },
+        },
+    })
+    async createBulkOCR(
+        @Body() createBulkDto: CreateBulkEntregaDto,
+        @AuthHeader() authHeader: string,
+        @Res() res: Response,
+    ) {
+        const userId = await this.extractUserId(authHeader);
+        const { entregas, pdf } = await this.entregaService.createBulkForOCR(createBulkDto, userId);
+
+        res.setHeader('Content-Type', 'application/pdf');
+        res.setHeader(
+            'Content-Disposition',
+            `attachment; filename=encuesta-${createBulkDto.encuestaId}-${Date.now()}.pdf`,
+        );
+        res.send(pdf);
     }
 }
