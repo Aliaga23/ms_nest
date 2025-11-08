@@ -38,7 +38,6 @@ export class RespuestaService {
         return this.prisma.respuesta.create({
             data: {
                 texto: dto.texto,
-                numero: dto.numero,
                 recibido_en: dto.recibido_en || new Date(),
                 entregaId: dto.entregaId,
                 preguntaId: dto.preguntaId,

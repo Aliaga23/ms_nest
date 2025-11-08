@@ -3,7 +3,6 @@ import {
     IsString,
     IsOptional,
     IsUUID,
-    IsNumber,
     IsDateString,
     MaxLength,
 } from 'class-validator';
@@ -19,16 +18,6 @@ export class CreateRespuestaDto {
     @IsString()
     @MaxLength(500)
     texto?: string;
-
-    @ApiProperty({
-        example: 5,
-        description:
-            'Valor numérico asociado a la respuesta (por ejemplo, una escala de 1 a 5). Solo aplica a preguntas de tipo numérico.',
-        required: false,
-    })
-    @IsOptional()
-    @IsNumber()
-    numero?: number;
 
     @ApiProperty({
         example: '2025-11-06T18:45:00Z',

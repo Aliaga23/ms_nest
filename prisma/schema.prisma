@@ -116,7 +116,6 @@ model Canal {
 model Respuesta {
   id               String          @id @default(uuid())
   texto            String?         
-  numero           Int?
   recibido_en      DateTime?
   entregaId        String
   preguntaId       String          // relación obligatoria con Pregunta
