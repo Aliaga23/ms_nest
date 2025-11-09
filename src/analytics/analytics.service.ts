@@ -201,7 +201,7 @@ export class AnalyticsService {
                                     }))
                                 };
                             } catch (encuestaError) {
-                                this.logger.error(`Error procesando encuesta: ${encuestaError.message}`);
+                                this.logger.error(`Error procesando encuesddta: ${encuestaError.message}`);
                                 return null;
                             }
                         }).filter(encuesta => encuesta !== null)
