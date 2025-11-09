@@ -16,6 +16,7 @@ import { DestinatarioModule } from './destinatario/destinatario.module';
 import { HttpModule } from '@nestjs/axios';
 import { BulkRegisterModule } from './bulk-register/bulk-register.module';
 import { IngestionModule } from './ingestion/ingestion.module';
+import { AnalyticsModule } from './analytics/analytics.module';
 
 @Module({
   imports: [
@@ -34,7 +35,8 @@ import { IngestionModule } from './ingestion/ingestion.module';
     DestinatarioModule,
     HttpModule,
     BulkRegisterModule,
-    IngestionModule
+    IngestionModule,
+    AnalyticsModule
   ],
   controllers: [AppController],
   providers: [AppService, UsuarioService],
