@@ -9,5 +9,6 @@ import { ConfigModule } from '@nestjs/config';
     imports: [PrismaModule, ConfigModule],
     controllers: [OpcionEncuestaController],
     providers: [OpcionEncuestaService, UsuarioService],
+    exports: [OpcionEncuestaService],
 })
 export class OpcionEncuestaModule { }

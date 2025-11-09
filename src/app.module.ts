@@ -17,6 +17,7 @@ import { HttpModule } from '@nestjs/axios';
 import { BulkRegisterModule } from './bulk-register/bulk-register.module';
 import { IngestionModule } from './ingestion/ingestion.module';
 import { AnalyticsModule } from './analytics/analytics.module';
+import { ChatbotModule } from './chatbot/chatbot.module';
 
 @Module({
   imports: [
@@ -36,7 +37,8 @@ import { AnalyticsModule } from './analytics/analytics.module';
     HttpModule,
     BulkRegisterModule,
     IngestionModule,
-    AnalyticsModule
+    AnalyticsModule,
+    ChatbotModule
   ],
   controllers: [AppController],
   providers: [AppService, UsuarioService],

@@ -8,5 +8,6 @@ import { ChatgptModule } from '../gemini/chatgpt.module';
     imports: [ChatgptModule],
     controllers: [EncuestaController],
     providers: [EncuestaService, UsuarioService],
+    exports: [EncuestaService],
 })
 export class EncuestaModule { }

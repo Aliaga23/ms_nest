@@ -5,5 +5,6 @@ import { TipoPreguntaController } from './tipo-pregunta.controller';
 @Module({
     controllers: [TipoPreguntaController],
     providers: [TipoPreguntaService],
+    exports: [TipoPreguntaService],
 })
 export class TipoPreguntaModule { }

@@ -6,5 +6,6 @@ import { UsuarioService } from '../usuario/usuario.service';
 @Module({
     controllers: [CampanaController],
     providers: [CampanaService, UsuarioService],
+    exports: [CampanaService],
 })
 export class CampanaModule { }
