@@ -8,6 +8,20 @@ import { AnalyticsService } from './analytics.service';
 export class AnalyticsController {
     constructor(private readonly analyticsService: AnalyticsService) {}
 
+    @Get('pregunta/:preguntaId/encuesta')
+    @ApiOperation({ 
+        summary: 'Obtener la encuesta a la que pertenece una pregunta',
+        description: 'Devuelve información de la encuesta basándose en el ID de la pregunta'
+    })
+    @ApiParam({
+        name: 'preguntaId',
+        description: 'ID de la pregunta',
+        example: '42610e5b-234e-4a1d-ad4e-91e55fd8a23e'
+    })
+    async getPreguntaEncuesta(@Param('preguntaId') preguntaId: string) {
+        return this.analyticsService.getEncuestaByPregunta(preguntaId);
+    }
+
     @Get('usuarios')
     @ApiOperation({ 
         summary: 'Listar todos los usuarios disponibles',
@@ -251,5 +265,33 @@ export class AnalyticsController {
         @Query('encuestaId') encuestaId?: string
     ) {
         return this.analyticsService.getRespuestasCompletar(userId, encuestaId);
+    }
+
+    @Get('campana/:campanaId/respuestas-completar')
+    @ApiOperation({ 
+        summary: 'Obtener respuestas de tipo Completar por campaña',
+        description: 'Devuelve todas las respuestas de texto libre de encuestas en una campaña específica'
+    })
+    @ApiParam({
+        name: 'campanaId',
+        description: 'ID de la campaña',
+        example: 'uuid-campana'
+    })
+    async getRespuestasCompletarByCampana(@Param('campanaId') campanaId: string) {
+        return this.analyticsService.getRespuestasCompletarByCampana(campanaId);
+    }
+
+    @Get('campana/:campanaId/respuestas-opciones')
+    @ApiOperation({ 
+        summary: 'Obtener respuestas de opciones (única y múltiple) por campaña',
+        description: 'Devuelve todas las respuestas de preguntas de opción única y múltiple de encuestas en una campaña específica'
+    })
+    @ApiParam({
+        name: 'campanaId',
+        description: 'ID de la campaña',
+        example: 'uuid-campana'
+    })
+    async getRespuestasOpcionesByCampana(@Param('campanaId') campanaId: string) {
+        return this.analyticsService.getRespuestasOpcionesByCampana(campanaId);
     }
 }

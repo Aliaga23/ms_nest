@@ -396,7 +396,10 @@ export class AnalyticsService {
                         respuestasUnicas.map(r => r.texto).join(', ') :
                         respuestasUnicas[0].texto
                     ) : null,
-                valores_seleccionados: respuestasUnicas.map(r => r.valor),
+                valores_seleccionados: respuestasUnicas.map(r => ({
+                    valor: r.valor,
+                    texto: r.texto
+                })),
                 fecha_respuesta: respuesta.fecha_respuesta
             };
 
@@ -423,6 +426,38 @@ export class AnalyticsService {
                 encuesta.respuestas.length > 0 || encuesta.preguntas.length > 0
             )
         })).filter(usuario => usuario.encuestas.length > 0);
+    }
+
+    async getEncuestaByPregunta(preguntaId: string) {
+        try {
+            const pregunta = await this.prisma.pregunta.findUnique({
+                where: { id: preguntaId },
+                include: {
+                    encuesta: {
+                        select: {
+                            id: true,
+                            nombre: true,
+                            descripcion: true,
+                            user_id: true,
+                            creado_en: true
+                        }
+                    }
+                }
+            });
+
+            if (!pregunta) {
+                throw new Error('Pregunta no encontrada');
+            }
+
+            return {
+                pregunta_id: pregunta.id,
+                pregunta_texto: pregunta.texto,
+                encuesta: pregunta.encuesta
+            };
+        } catch (error) {
+            this.logger.error(`Error obteniendo encuesta de pregunta ${preguntaId}:`, error);
+            throw error;
+        }
     }
 
     async getUsuariosList() {
@@ -858,5 +893,151 @@ export class AnalyticsService {
             campanas_participadas: Array.from(campanas),
             tiene_respuestas: totalRespuestas > 0
         };
+    }
+
+    async getRespuestasCompletarByCampana(campanaId: string) {
+        try {
+            const respuestas = await this.prisma.respuesta.findMany({
+                where: {
+                    entrega: {
+                        encuesta: {
+                            campañaId: campanaId
+                        }
+                    },
+                    pregunta: {
+                        tipo_pregunta: {
+                            nombre: 'Completar'
+                        }
+                    }
+                },
+                include: {
+                    pregunta: {
+                        include: {
+                            encuesta: {
+                                select: {
+                                    id: true,
+                                    nombre: true,
+                                    user_id: true
+                                }
+                            }
+                        }
+                    },
+                    entrega: {
+                        include: {
+                            destinatario: {
+                                select: {
+                                    nombre: true
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+
+            this.logger.log(`Respuestas Completar encontradas: ${respuestas.length}`);
+
+            return respuestas.map(r => ({
+                respuesta_id: r.id,
+                texto_respuesta: r.texto,
+                pregunta_texto: r.pregunta.texto,
+                encuesta_id: r.pregunta.encuesta.id,
+                encuesta_nombre: r.pregunta.encuesta.nombre,
+                user_id: r.pregunta.encuesta.user_id,
+                destinatario_nombre: r.entrega.destinatario.nombre,
+                fecha_respuesta: r.recibido_en
+            }));
+        } catch (error) {
+            this.logger.error(`Error obteniendo respuestas completar de campaña ${campanaId}:`, error);
+            throw error;
+        }
+    }
+
+    async getRespuestasOpcionesByCampana(campanaId: string) {
+        try {
+            this.logger.log(`Buscando respuestas de opciones para campaña: ${campanaId}`);
+            
+            const respuestas = await this.prisma.respuesta.findMany({
+                where: {
+                    entrega: {
+                        encuesta: {
+                            campañaId: campanaId
+                        }
+                    },
+                    pregunta: {
+                        tipo_pregunta: {
+                            nombre: {
+                                in: ['Opción Única', 'Opción Múltiple']
+                            }
+                        }
+                    }
+                },
+                include: {
+                    pregunta: {
+                        include: {
+                            encuesta: {
+                                select: {
+                                    id: true,
+                                    nombre: true,
+                                    user_id: true
+                                }
+                            },
+                            tipo_pregunta: true,
+                            opciones: true
+                        }
+                    },
+                    opcion_encuesta: true,
+                    entrega: {
+                        include: {
+                            destinatario: {
+                                select: {
+                                    nombre: true
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+
+            this.logger.log(`Respuestas de opciones encontradas: ${respuestas.length}`);
+
+            const respuestasAgrupadas = new Map();
+
+            respuestas.forEach(r => {
+                const key = `${r.preguntaId}_${r.entregaId}`;
+                
+                if (!respuestasAgrupadas.has(key)) {
+                    respuestasAgrupadas.set(key, {
+                        respuesta_id: r.id,
+                        pregunta_texto: r.pregunta.texto,
+                        tipo_pregunta: r.pregunta.tipo_pregunta.nombre,
+                        encuesta_id: r.pregunta.encuesta.id,
+                        encuesta_nombre: r.pregunta.encuesta.nombre,
+                        user_id: r.pregunta.encuesta.user_id,
+                        destinatario_nombre: r.entrega.destinatario.nombre,
+                        fecha_respuesta: r.recibido_en,
+                        opciones_disponibles: r.pregunta.opciones.map(o => ({
+                            texto: o.texto,
+                            valor: o.valor
+                        })),
+                        opciones_seleccionadas: []
+                    });
+                }
+
+                if (r.opcion_encuesta) {
+                    respuestasAgrupadas.get(key).opciones_seleccionadas.push({
+                        texto: r.opcion_encuesta.texto,
+                        valor: r.opcion_encuesta.valor
+                    });
+                }
+            });
+
+            return Array.from(respuestasAgrupadas.values()).map(r => ({
+                ...r,
+                respuesta_texto: r.opciones_seleccionadas.map(o => o.texto).join(', ')
+            }));
+        } catch (error) {
+            this.logger.error(`Error obteniendo respuestas de opciones de campaña ${campanaId}:`, error);
+            throw error;
+        }
     }
 }

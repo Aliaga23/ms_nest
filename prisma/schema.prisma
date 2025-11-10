@@ -39,6 +39,8 @@ model Encuesta {
   preguntas   Pregunta[]
   entregas    Entrega[]
 
+  @@index([user_id])
+  @@index([user_id, activo])
   @@map("encuesta")
 }
 
@@ -55,6 +57,9 @@ model Pregunta {
   opciones        OpcionEncuesta[]
   respuestas Respuesta[]
 
+  @@index([encuestaId])
+  @@index([tipo_preguntaId])
+  @@index([encuestaId, tipo_preguntaId])
   @@map("preguntas")
 }
 
@@ -75,6 +80,7 @@ model OpcionEncuesta {
   pregunta    Pregunta   @relation(fields: [preguntaId], references: [id])
   respuestas  Respuesta[]
 
+  @@index([preguntaId])
   @@map("opcion_encuesta")
 }
 
@@ -89,6 +95,7 @@ model Entrega {
   destinatario   Destinatario @relation(fields: [destinatarioId], references: [id])
   respuestas     Respuesta[]
 
+  @@index([encuestaId])
   @@map("entrega")
 }
 
@@ -125,5 +132,8 @@ model Respuesta {
   pregunta         Pregunta        @relation(fields: [preguntaId], references: [id])
   opcion_encuesta  OpcionEncuesta? @relation(fields: [opcionEncuestaId], references: [id])
 
+  @@index([entregaId])
+  @@index([preguntaId])
+  @@index([preguntaId, entregaId])
   @@map("respuesta")
 }
