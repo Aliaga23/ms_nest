@@ -185,20 +185,25 @@ export class AnalyticsService {
                                             valor: opcion.valor || ''
                                         }))
                                     })),
-                                    respuestas_usuario: (encuesta.respuestas || []).map(respuesta => ({
-                                        entrega_id: respuesta.entrega_id || '',
-                                        pregunta_texto: respuesta.pregunta_texto || '',
-                                        tipo_pregunta: respuesta.tipo_pregunta || '',
-                                        pregunta_orden: parseInt(respuesta.pregunta_orden) || 0,
-                                        opciones_disponibles: (respuesta.opciones_disponibles || []).map(opcion => ({
-                                            texto: opcion.texto || '',
-                                            valor: opcion.valor || ''
-                                        })),
-                                        respuesta_seleccionada: respuesta.respuesta_seleccionada || null,
-                                        valores_seleccionados: respuesta.valores_seleccionados || [],
-                                        respuesta_texto_libre: respuesta.respuesta_texto_libre || null,
-                                        fecha_respuesta: respuesta.fecha_respuesta || null
-                                    }))
+                                    respuestas_usuario: (encuesta.respuestas || []).map(respuesta => {
+                                        const resp: any = {
+                                            entrega_id: respuesta.entrega_id || '',
+                                            pregunta_texto: respuesta.pregunta_texto || '',
+                                            tipo_pregunta: respuesta.tipo_pregunta || '',
+                                            pregunta_orden: parseInt(respuesta.pregunta_orden) || 0,
+                                            opciones_disponibles: (respuesta.opciones_disponibles || []).map(opcion => ({
+                                                texto: opcion.texto || '',
+                                                valor: opcion.valor || ''
+                                            })),
+                                            respuesta_seleccionada: respuesta.respuesta_seleccionada || null,
+                                            valores_seleccionados: respuesta.valores_seleccionados || [],
+                                            fecha_respuesta: respuesta.fecha_respuesta || null
+                                        };
+                                        if (respuesta.respuesta_texto_libre) {
+                                            resp.respuesta_texto_libre = respuesta.respuesta_texto_libre;
+                                        }
+                                        return resp;
+                                    })
                                 };
                             } catch (encuestaError) {
                                 this.logger.error(`Error procesando encuesddta: ${encuestaError.message}`);
@@ -378,7 +383,7 @@ export class AnalyticsService {
                 index === self.findIndex(t => t.valor === item.valor)
             );
 
-            return {
+            const result: any = {
                 entrega_id: respuesta.entrega_id,
                 pregunta_id: respuesta.pregunta_id,
                 pregunta_texto: respuesta.pregunta_texto,
@@ -392,9 +397,14 @@ export class AnalyticsService {
                         respuestasUnicas[0].texto
                     ) : null,
                 valores_seleccionados: respuestasUnicas.map(r => r.valor),
-                respuesta_texto_libre: respuesta.respuesta_texto_libre,
                 fecha_respuesta: respuesta.fecha_respuesta
             };
+
+            if (respuesta.respuesta_texto_libre) {
+                result.respuesta_texto_libre = respuesta.respuesta_texto_libre;
+            }
+
+            return result;
         });
     }
 
@@ -538,20 +548,25 @@ export class AnalyticsService {
                                 valor: opcion.valor || ''
                             }))
                         })),
-                        respuestas_usuario: (encuesta.respuestas || []).map(respuesta => ({
-                            entrega_id: respuesta.entrega_id || '',
-                            pregunta_texto: respuesta.pregunta_texto || '',
-                            tipo_pregunta: respuesta.tipo_pregunta || '',
-                            pregunta_orden: parseInt(respuesta.pregunta_orden) || 0,
-                            opciones_disponibles: (respuesta.opciones_disponibles || []).map(opcion => ({
-                                texto: opcion.texto || '',
-                                valor: opcion.valor || ''
-                            })),
-                            respuesta_seleccionada: respuesta.respuesta_seleccionada || null,
-                            valores_seleccionados: respuesta.valores_seleccionados || [],
-                            respuesta_texto_libre: respuesta.respuesta_texto_libre || null,
-                            fecha_respuesta: respuesta.fecha_respuesta || null
-                        }))
+                        respuestas_usuario: (encuesta.respuestas || []).map(respuesta => {
+                            const resp: any = {
+                                entrega_id: respuesta.entrega_id || '',
+                                pregunta_texto: respuesta.pregunta_texto || '',
+                                tipo_pregunta: respuesta.tipo_pregunta || '',
+                                pregunta_orden: parseInt(respuesta.pregunta_orden) || 0,
+                                opciones_disponibles: (respuesta.opciones_disponibles || []).map(opcion => ({
+                                    texto: opcion.texto || '',
+                                    valor: opcion.valor || ''
+                                })),
+                                respuesta_seleccionada: respuesta.respuesta_seleccionada || null,
+                                valores_seleccionados: respuesta.valores_seleccionados || [],
+                                fecha_respuesta: respuesta.fecha_respuesta || null
+                            };
+                            if (respuesta.respuesta_texto_libre) {
+                                resp.respuesta_texto_libre = respuesta.respuesta_texto_libre;
+                            }
+                            return resp;
+                        })
                     };
                 } catch (encuestaError) {
                     this.logger.error(`Error procesando encuesta: ${encuestaError.message}`);
@@ -565,6 +580,120 @@ export class AnalyticsService {
         } catch (error) {
             this.logger.error(`Error al obtener datos K-means para usuario ${userId}:`, error);
             throw new Error(`Error al procesar datos del usuario: ${error.message}`);
+        }
+    }
+
+    async getUsuarioEncuestas(userId: string) {
+        try {
+            this.logger.log(`Obteniendo encuestas para usuario: ${userId}`);
+
+            const usuarioInfo = await this.getUsuarioById(userId);
+            if (!usuarioInfo) {
+                return null;
+            }
+
+            const encuestas = await this.prisma.encuesta.findMany({
+                where: { user_id: userId },
+                include: {
+                    campaña: true,
+                    canal: true,
+                    preguntas: {
+                        include: {
+                            tipo_pregunta: true
+                        }
+                    }
+                }
+            });
+
+            if (encuestas.length === 0) {
+                return [];
+            }
+
+            return encuestas.map(encuesta => ({
+                encuesta_id: encuesta.id,
+                nombre: encuesta.nombre,
+                descripcion: encuesta.descripcion,
+                campana: encuesta.campaña?.nombre || 'Sin campaña',
+                canal: encuesta.canal?.nombre || 'Sin canal',
+                activo: encuesta.activo,
+                total_preguntas: encuesta.preguntas.length,
+                creado_en: encuesta.creado_en
+            }));
+
+        } catch (error) {
+            this.logger.error(`Error al obtener encuestas del usuario ${userId}:`, error);
+            throw new Error(`Error al procesar encuestas del usuario: ${error.message}`);
+        }
+    }
+
+    async getRespuestasCompletar(userId?: string, encuestaId?: string) {
+        try {
+            this.logger.log(`Obteniendo respuestas de tipo Completar - Usuario: ${userId || 'todos'}, Encuesta: ${encuestaId || 'todas'}`);
+
+            const whereClause: any = {
+                pregunta: {
+                    tipo_pregunta: {
+                        nombre: 'Completar'
+                    }
+                }
+            };
+
+            if (userId) {
+                whereClause.entrega = {
+                    encuesta: {
+                        user_id: userId
+                    }
+                };
+            }
+
+            if (encuestaId) {
+                if (whereClause.entrega) {
+                    whereClause.entrega.encuesta.id = encuestaId;
+                } else {
+                    whereClause.entrega = {
+                        encuesta: {
+                            id: encuestaId
+                        }
+                    };
+                }
+            }
+
+            const respuestas = await this.prisma.respuesta.findMany({
+                where: whereClause,
+                include: {
+                    pregunta: {
+                        include: {
+                            tipo_pregunta: true,
+                            encuesta: {
+                                include: {
+                                    campaña: true,
+                                    canal: true
+                                }
+                            }
+                        }
+                    },
+                    entrega: {
+                        include: {
+                            destinatario: true
+                        }
+                    }
+                }
+            });
+
+            return respuestas.map(respuesta => ({
+                respuesta_id: respuesta.id,
+                texto_respuesta: respuesta.texto,
+                pregunta_texto: respuesta.pregunta.texto,
+                encuesta_id: respuesta.pregunta.encuesta.id,
+                encuesta_nombre: respuesta.pregunta.encuesta.nombre,
+                campana: respuesta.pregunta.encuesta.campaña?.nombre || 'Sin campaña',
+                canal: respuesta.pregunta.encuesta.canal?.nombre || 'Sin canal',
+                entrega_id: respuesta.entregaId
+            }));
+
+        } catch (error) {
+            this.logger.error('Error al obtener respuestas de tipo Completar:', error);
+            throw new Error(`Error al procesar respuestas: ${error.message}`);
         }
     }
 
@@ -601,6 +730,80 @@ export class AnalyticsService {
         } catch (error) {
             this.logger.error(`Error al buscar usuario ${userId}:`, error);
             return null;
+        }
+    }
+
+    async getRespuestasByUsuarioEncuesta(userId: string, encuestaId: string) {
+        try {
+            this.logger.log(`Obteniendo respuestas para usuario: ${userId}, encuesta: ${encuestaId}`);
+
+            const encuesta = await this.prisma.encuesta.findFirst({
+                where: { 
+                    id: encuestaId,
+                    user_id: userId 
+                },
+                include: {
+                    campaña: true,
+                    canal: true,
+                    preguntas: {
+                        include: {
+                            tipo_pregunta: true,
+                            opciones: true
+                        },
+                        orderBy: { orden: 'asc' }
+                    },
+                    entregas: {
+                        include: {
+                            respuestas: {
+                                include: {
+                                    pregunta: {
+                                        include: {
+                                            tipo_pregunta: true,
+                                            opciones: true
+                                        }
+                                    },
+                                    opcion_encuesta: true
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+
+            if (!encuesta) {
+                return null;
+            }
+
+            const respuestasAgrupadas = this.agruparRespuestasPorPregunta(encuesta.entregas);
+            const respuestasFiltradas = respuestasAgrupadas.filter(r => r.tipo_pregunta !== 'Completar');
+
+            return {
+                encuesta: {
+                    id: encuesta.id,
+                    nombre: encuesta.nombre,
+                    descripcion: encuesta.descripcion,
+                    campana: encuesta.campaña?.nombre || 'Sin campaña',
+                    canal: encuesta.canal?.nombre || 'Sin canal',
+                    activo: encuesta.activo
+                },
+                preguntas: encuesta.preguntas
+                    .filter(p => p.tipo_pregunta.nombre !== 'Completar')
+                    .map(pregunta => ({
+                        pregunta_texto: pregunta.texto,
+                        tipo_pregunta: pregunta.tipo_pregunta.nombre,
+                        pregunta_obligatoria: pregunta.obligatorio,
+                        pregunta_orden: pregunta.orden,
+                        opciones_disponibles: pregunta.opciones.map(opcion => ({
+                            texto: opcion.texto,
+                            valor: opcion.valor
+                        }))
+                    })),
+                respuestas: respuestasFiltradas
+            };
+
+        } catch (error) {
+            this.logger.error(`Error al obtener respuestas para usuario ${userId}, encuesta ${encuestaId}:`, error);
+            throw new Error(`Error al procesar respuestas: ${error.message}`);
         }
     }
 

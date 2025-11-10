@@ -1,4 +1,4 @@
-import { Controller, Get, Param, Res, HttpStatus, HttpException } from '@nestjs/common';
+import { Controller, Get, Param, Res, HttpStatus, HttpException, Query } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiParam } from '@nestjs/swagger';
 import type { Response } from 'express';
 import { AnalyticsService } from './analytics.service';
@@ -129,16 +129,127 @@ export class AnalyticsController {
         res.send(JSON.stringify(userData, null, 2));
     }
 
-    @Get('kmeans-data')
+    @Get('respuestas/:userId/:encuestaId')
+    @ApiParam({
+        name: 'userId',
+        description: 'ID del usuario',
+        example: 'user-123-abc'
+    })
+    @ApiParam({
+        name: 'encuestaId',
+        description: 'ID de la encuesta',
+        example: 'encuesta-456-def'
+    })
     @ApiOperation({ 
-        summary: 'Obtener datos limpios para análisis K-means de todos los usuarios',
-        description: 'Endpoint público que devuelve todos los usuarios con sus respuestas de encuestas, excluyendo preguntas tipo "Completar"'
+        summary: 'Obtener respuestas específicas de un usuario en una encuesta',
+        description: 'Endpoint público rápido que devuelve solo las respuestas de un usuario en una encuesta específica'
     })
     @ApiResponse({ 
         status: 200, 
-        description: 'Datos estructurados para análisis K-means en formato JSON'
+        description: 'Respuestas del usuario en la encuesta especificada',
+        content: {
+            'application/json': {
+                schema: {
+                    type: 'object',
+                    properties: {
+                        encuesta: { type: 'object' },
+                        preguntas: { type: 'array' },
+                        respuestas: { type: 'array' }
+                    }
+                }
+            }
+        }
     })
-    async getKmeansData() {
-        return this.analyticsService.getKmeansData();
+    @ApiResponse({ 
+        status: 404, 
+        description: 'Usuario o encuesta no encontrada'
+    })
+    async getRespuestasByUsuarioEncuesta(
+        @Param('userId') userId: string,
+        @Param('encuestaId') encuestaId: string
+    ) {
+        const data = await this.analyticsService.getRespuestasByUsuarioEncuesta(userId, encuestaId);
+        if (!data) {
+            throw new HttpException('Usuario o encuesta no encontrada', HttpStatus.NOT_FOUND);
+        }
+        return data;
+    }
+
+    @Get('usuario/:userId/encuestas')
+    @ApiParam({
+        name: 'userId',
+        description: 'ID del usuario para obtener sus encuestas',
+        example: 'user-123-abc'
+    })
+    @ApiOperation({ 
+        summary: 'Obtener lista de encuestas de un usuario',
+        description: 'Endpoint público que devuelve todas las encuestas de un usuario específico'
+    })
+    @ApiResponse({ 
+        status: 200, 
+        description: 'Lista de encuestas del usuario',
+        content: {
+            'application/json': {
+                schema: {
+                    type: 'array',
+                    items: {
+                        type: 'object',
+                        properties: {
+                            encuesta_id: { type: 'string' },
+                            nombre: { type: 'string' },
+                            descripcion: { type: 'string' },
+                            campana: { type: 'string' },
+                            canal: { type: 'string' },
+                            activo: { type: 'boolean' },
+                            total_preguntas: { type: 'number' }
+                        }
+                    }
+                }
+            }
+        }
+    })
+    @ApiResponse({ 
+        status: 404, 
+        description: 'Usuario no encontrado'
+    })
+    async getUsuarioEncuestas(@Param('userId') userId: string) {
+        const encuestas = await this.analyticsService.getUsuarioEncuestas(userId);
+        if (encuestas === null) {
+            throw new HttpException('Usuario no encontrado', HttpStatus.NOT_FOUND);
+        }
+        return encuestas;
+    }
+
+    @Get('respuestas-completar')
+    @ApiOperation({ 
+        summary: 'Obtener respuestas de tipo Completar (texto libre)',
+        description: 'Endpoint público que devuelve todas las respuestas de preguntas tipo Completar. Puede filtrar por usuario y/o encuesta usando query params'
+    })
+    @ApiResponse({ 
+        status: 200, 
+        description: 'Lista de respuestas de texto libre',
+        content: {
+            'application/json': {
+                schema: {
+                    type: 'array',
+                    items: {
+                        type: 'object',
+                        properties: {
+                            respuesta_id: { type: 'string' },
+                            texto_respuesta: { type: 'string' },
+                            pregunta_texto: { type: 'string' },
+                            encuesta_nombre: { type: 'string' },
+                            user_id: { type: 'string' }
+                        }
+                    }
+                }
+            }
+        }
+    })
+    async getRespuestasCompletar(
+        @Query('userId') userId?: string,
+        @Query('encuestaId') encuestaId?: string
+    ) {
+        return this.analyticsService.getRespuestasCompletar(userId, encuestaId);
     }
 }
