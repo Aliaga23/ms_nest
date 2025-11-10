@@ -1,0 +1,19 @@
+apiVersion: cloud.google.com/v1
+kind: BackendConfig
+metadata:
+  name: ms-nest-backend-config
+  namespace: default
+  labels:
+    app: ms-nest
+spec:
+  healthCheck:
+    checkIntervalSec: 10
+    timeoutSec: 5
+    healthyThreshold: 2
+    unhealthyThreshold: 3
+    type: HTTP
+    requestPath: /
+    port: 3000
+  connectionDraining:
+    drainingTimeoutSec: 60
+  timeoutSec: 300

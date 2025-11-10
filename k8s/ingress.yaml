@@ -1,0 +1,27 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: ms-nest-ingress
+  namespace: default
+  annotations:
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+  labels:
+    app: ms-nest
+spec:
+  ingressClassName: nginx
+  tls:
+  - hosts:
+    - encuestas.sw2ficct.lat
+    secretName: ms-nest-tls-cert
+  rules:
+  - host: encuestas.sw2ficct.lat
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: ms-nest-service
+            port:
+              number: 80

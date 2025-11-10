@@ -1,11 +1,65 @@
+# Node
 node_modules
-.env
+npm-debug.log
+yarn-error.log
+.npm
+.pnp
+.pnp.js
 
+# Builds
 dist
-coverage
-*.log
+build
+.out
+.next
+
+# Env & Secrets
+.env
+.env.*
+!.env.example
+
+# Git
 .git
 .gitignore
-README.md
-Dockerfile
+.gitattributes
+
+# Docker
+Dockerfile*
 .dockerignore
+docker-compose*
+
+# Tests
+coverage
+__tests__
+*.spec.ts
+*.test.ts
+test/
+
+# SO / IDE
+.DS_Store
+.vscode
+.idea
+*.swp
+*.swo
+*.tmp
+.cache
+
+# Logs
+logs
+*.log
+
+# Documentation
+README.md
+*.md
+docs/
+
+# CI/CD
+.github/
+.gitlab-ci.yml
+.travis.yml
+
+# Kubernetes
+k8s/
+
+# Other
+.nyc_output
+.eslintcache
