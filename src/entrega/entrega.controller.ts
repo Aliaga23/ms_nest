@@ -111,6 +111,67 @@ export class EntregaController {
         return this.entregaService.removeByUser(id, userId);
     }
 
+    @Get(':id/preguntas')
+    @ApiOperation({ summary: 'Obtener todas las preguntas con opciones de una entrega (público)' })
+    @ApiResponse({ 
+        status: 200, 
+        description: 'Lista de preguntas con sus opciones',
+    })
+    async getPreguntasConOpciones(
+        @Param('id') entregaId: string,
+    ) {
+        return this.entregaService.getPreguntasConOpcionesPublic(entregaId);
+    }
+
+    @Post(':id/respuestas')
+    @ApiOperation({ summary: 'Guardar respuestas de una entrega (público)' })
+    @ApiResponse({ 
+        status: 201, 
+        description: 'Respuestas guardadas exitosamente',
+    })
+    @ApiBody({
+        description: 'Respuestas de la encuesta',
+        schema: {
+            type: 'object',
+            properties: {
+                respuestas: {
+                    type: 'array',
+                    items: {
+                        type: 'object',
+                        properties: {
+                            preguntaId: { type: 'string', format: 'uuid' },
+                            opcionId: { type: 'string', format: 'uuid', nullable: true },
+                            texto: { type: 'string', nullable: true },
+                        },
+                    },
+                },
+            },
+        },
+        examples: {
+            ejemplo1: {
+                summary: 'Respuestas con opciones',
+                value: {
+                    respuestas: [
+                        {
+                            preguntaId: '123e4567-e89b-12d3-a456-426614174000',
+                            opcionId: '987e6543-e21b-12d3-a456-426614174000',
+                        },
+                        {
+                            preguntaId: '223e4567-e89b-12d3-a456-426614174001',
+                            texto: 'Mi respuesta abierta',
+                        },
+                    ],
+                },
+            },
+        },
+    })
+    async guardarRespuestas(
+        @Param('id') entregaId: string,
+        @Body() body: { respuestas: Array<{ preguntaId: string; opcionId?: string; texto?: string }> },
+    ) {
+        return this.entregaService.guardarRespuestasPublic(entregaId, body.respuestas);
+    }
+
     @Post('bulk-ocr')
     @ApiOperation({ summary: 'Generar entregas masivas para OCR con PDF' })
     @ApiResponse({ 

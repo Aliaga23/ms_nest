@@ -103,6 +103,354 @@ export class EntregaService {
         return this.prisma.entrega.delete({ where: { id } });
     }
 
+    async getPreguntasConOpciones(entregaId: string, userId: string) {
+        // Verificar que la entrega pertenece al usuario
+        const entrega = await this.prisma.entrega.findFirst({
+            where: { id: entregaId, encuesta: { user_id: userId } },
+            include: {
+                encuesta: true,
+            },
+        });
+
+        if (!entrega) {
+            throw new HttpException('Entrega no encontrada o sin permisos', HttpStatus.FORBIDDEN);
+        }
+
+        // Obtener preguntas con opciones
+        const preguntas = await this.prisma.pregunta.findMany({
+            where: { encuestaId: entrega.encuestaId },
+            include: {
+                tipo_pregunta: true,
+                opciones: true,
+            },
+            orderBy: { orden: 'asc' },
+        });
+
+        return {
+            entregaId: entrega.id,
+            encuesta: {
+                id: entrega.encuesta.id,
+                nombre: entrega.encuesta.nombre,
+                descripcion: entrega.encuesta.descripcion,
+            },
+            preguntas: preguntas.map(p => ({
+                id: p.id,
+                texto: p.texto,
+                orden: p.orden,
+                obligatorio: p.obligatorio,
+                tipo: {
+                    id: p.tipo_pregunta.id,
+                    nombre: p.tipo_pregunta.nombre,
+                },
+                opciones: p.opciones.map(o => ({
+                    id: o.id,
+                    texto: o.texto,
+                    valor: o.valor,
+                })),
+            })),
+        };
+    }
+
+    async getPreguntasConOpcionesPublic(entregaId: string) {
+        // Obtener la entrega sin verificar permisos de usuario
+        const entrega = await this.prisma.entrega.findUnique({
+            where: { id: entregaId },
+            include: {
+                encuesta: true,
+            },
+        });
+
+        if (!entrega) {
+            throw new NotFoundException('Entrega no encontrada');
+        }
+
+        // Obtener preguntas con opciones
+        const preguntas = await this.prisma.pregunta.findMany({
+            where: { encuestaId: entrega.encuestaId },
+            include: {
+                tipo_pregunta: true,
+                opciones: true,
+            },
+            orderBy: { orden: 'asc' },
+        });
+
+        return {
+            entregaId: entrega.id,
+            encuesta: {
+                id: entrega.encuesta.id,
+                nombre: entrega.encuesta.nombre,
+                descripcion: entrega.encuesta.descripcion,
+            },
+            preguntas: preguntas.map(p => ({
+                id: p.id,
+                texto: p.texto,
+                orden: p.orden,
+                obligatorio: p.obligatorio,
+                tipo: {
+                    id: p.tipo_pregunta.id,
+                    nombre: p.tipo_pregunta.nombre,
+                },
+                opciones: p.opciones.map(o => ({
+                    id: o.id,
+                    texto: o.texto,
+                    valor: o.valor,
+                })),
+            })),
+        };
+    }
+
+    async guardarRespuestas(
+        entregaId: string,
+        userId: string,
+        respuestas: Array<{ preguntaId: string; opcionId?: string; texto?: string }>,
+    ) {
+        // Verificar que la entrega pertenece al usuario
+        const entrega = await this.prisma.entrega.findFirst({
+            where: { id: entregaId, encuesta: { user_id: userId } },
+            include: {
+                encuesta: {
+                    include: {
+                        preguntas: {
+                            include: {
+                                tipo_pregunta: true,
+                            },
+                        },
+                    },
+                },
+            },
+        });
+
+        if (!entrega) {
+            throw new HttpException('Entrega no encontrada o sin permisos', HttpStatus.FORBIDDEN);
+        }
+
+        // Verificar que la entrega no haya sido respondida
+        const respuestasExistentes = await this.prisma.respuesta.findFirst({
+            where: { entregaId },
+        });
+
+        if (respuestasExistentes) {
+            throw new BadRequestException('Esta entrega ya ha sido respondida');
+        }
+
+        // Validar que todas las preguntas están en la encuesta
+        const preguntasIds = entrega.encuesta.preguntas.map(p => p.id);
+        for (const respuesta of respuestas) {
+            if (!preguntasIds.includes(respuesta.preguntaId)) {
+                throw new BadRequestException(
+                    `La pregunta ${respuesta.preguntaId} no pertenece a esta encuesta`,
+                );
+            }
+        }
+
+        // Crear respuestas en transacción
+        const respuestasCreadas = await this.prisma.$transaction(async (prisma) => {
+            const respuestasData: any[] = [];
+
+            for (const respuesta of respuestas) {
+                const pregunta = entrega.encuesta.preguntas.find(p => p.id === respuesta.preguntaId);
+                
+                if (!pregunta) continue;
+
+                // Validar según el tipo de pregunta
+                const tipoNombre = pregunta.tipo_pregunta.nombre.toLowerCase();
+                const esTexto = tipoNombre.includes('abierta') || tipoNombre.includes('completar');
+                
+                if (esTexto) {
+                    // Preguntas de texto (Abierta, Completar, etc.)
+                    if (!respuesta.texto || respuesta.texto.trim() === '') {
+                        throw new BadRequestException(
+                            `La pregunta "${pregunta.texto}" requiere una respuesta de texto`,
+                        );
+                    }
+                } else {
+                    // Para preguntas con opciones (Opción Única, Opción Múltiple, etc.)
+                    if (!respuesta.opcionId) {
+                        throw new BadRequestException(
+                            `La pregunta "${pregunta.texto}" requiere seleccionar una opción`,
+                        );
+                    }
+
+                    // Verificar que la opción pertenece a la pregunta
+                    const opcionValida = await prisma.opcionEncuesta.findFirst({
+                        where: {
+                            id: respuesta.opcionId,
+                            preguntaId: respuesta.preguntaId,
+                        },
+                    });
+
+                    if (!opcionValida) {
+                        throw new BadRequestException(
+                            `La opción seleccionada no es válida para la pregunta "${pregunta.texto}"`,
+                        );
+                    }
+                }
+
+                const respuestaCreada = await prisma.respuesta.create({
+                    data: {
+                        entregaId,
+                        preguntaId: respuesta.preguntaId,
+                        opcionEncuestaId: respuesta.opcionId || null,
+                        texto: respuesta.texto || null,
+                        recibido_en: new Date(),
+                    },
+                    include: {
+                        pregunta: true,
+                        opcion_encuesta: true,
+                    },
+                });
+
+                respuestasData.push(respuestaCreada);
+            }
+
+            // Actualizar la fecha de respuesta de la entrega
+            await prisma.entrega.update({
+                where: { id: entregaId },
+                data: { respondido_en: new Date() },
+            });
+
+            return respuestasData;
+        });
+
+        return {
+            message: 'Respuestas guardadas exitosamente',
+            entregaId,
+            totalRespuestas: respuestasCreadas.length,
+            respuestas: respuestasCreadas.map(r => ({
+                id: r.id,
+                pregunta: r.pregunta.texto,
+                opcion: r.opcion_encuesta?.texto || null,
+                texto: r.texto,
+                recibido_en: r.recibido_en,
+            })),
+        };
+    }
+
+    async guardarRespuestasPublic(
+        entregaId: string,
+        respuestas: Array<{ preguntaId: string; opcionId?: string; texto?: string }>,
+    ) {
+        // Obtener la entrega sin verificar permisos de usuario
+        const entrega = await this.prisma.entrega.findUnique({
+            where: { id: entregaId },
+            include: {
+                encuesta: {
+                    include: {
+                        preguntas: {
+                            include: {
+                                tipo_pregunta: true,
+                            },
+                        },
+                    },
+                },
+            },
+        });
+
+        if (!entrega) {
+            throw new NotFoundException('Entrega no encontrada');
+        }
+
+        // Verificar que la entrega no haya sido respondida
+        const respuestasExistentes = await this.prisma.respuesta.findFirst({
+            where: { entregaId },
+        });
+
+        if (respuestasExistentes) {
+            throw new BadRequestException('Esta entrega ya ha sido respondida');
+        }
+
+        // Validar que todas las preguntas están en la encuesta
+        const preguntasIds = entrega.encuesta.preguntas.map(p => p.id);
+        for (const respuesta of respuestas) {
+            if (!preguntasIds.includes(respuesta.preguntaId)) {
+                throw new BadRequestException(
+                    `La pregunta ${respuesta.preguntaId} no pertenece a esta encuesta`,
+                );
+            }
+        }
+
+        // VALIDAR ANTES DE LA TRANSACCIÓN para evitar timeout
+        for (const respuesta of respuestas) {
+            const pregunta = entrega.encuesta.preguntas.find(p => p.id === respuesta.preguntaId);
+            if (!pregunta) continue;
+
+            const tipoNombre = pregunta.tipo_pregunta.nombre.toLowerCase();
+            const esTexto = tipoNombre.includes('abierta') || tipoNombre.includes('completar');
+            
+            if (esTexto) {
+                if (!respuesta.texto || respuesta.texto.trim() === '') {
+                    throw new BadRequestException(
+                        `La pregunta "${pregunta.texto}" requiere una respuesta de texto`,
+                    );
+                }
+            } else {
+                if (!respuesta.opcionId) {
+                    throw new BadRequestException(
+                        `La pregunta "${pregunta.texto}" requiere seleccionar una opción`,
+                    );
+                }
+
+                // Verificar que la opción pertenece a la pregunta
+                const opcionValida = await this.prisma.opcionEncuesta.findFirst({
+                    where: {
+                        id: respuesta.opcionId,
+                        preguntaId: respuesta.preguntaId,
+                    },
+                });
+
+                if (!opcionValida) {
+                    throw new BadRequestException(
+                        `La opción seleccionada no es válida para la pregunta "${pregunta.texto}"`,
+                    );
+                }
+            }
+        }
+
+        // Crear respuestas en transacción (solo inserts, sin validaciones)
+        const respuestasCreadas = await this.prisma.$transaction(async (prisma) => {
+            const respuestasData: any[] = [];
+
+            for (const respuesta of respuestas) {
+                const respuestaCreada = await prisma.respuesta.create({
+                    data: {
+                        entregaId,
+                        preguntaId: respuesta.preguntaId,
+                        opcionEncuestaId: respuesta.opcionId || null,
+                        texto: respuesta.texto || null,
+                        recibido_en: new Date(),
+                    },
+                    include: {
+                        pregunta: true,
+                        opcion_encuesta: true,
+                    },
+                });
+
+                respuestasData.push(respuestaCreada);
+            }
+
+            // Actualizar la fecha de respuesta de la entrega
+            await prisma.entrega.update({
+                where: { id: entregaId },
+                data: { respondido_en: new Date() },
+            });
+
+            return respuestasData;
+        });
+
+        return {
+            message: 'Respuestas guardadas exitosamente',
+            entregaId,
+            totalRespuestas: respuestasCreadas.length,
+            respuestas: respuestasCreadas.map(r => ({
+                id: r.id,
+                pregunta: r.pregunta.texto,
+                opcion: r.opcion_encuesta?.texto || null,
+                texto: r.texto,
+                recibido_en: r.recibido_en,
+            })),
+        };
+    }
+
     async createBulkForOCR(createBulkDto: CreateBulkEntregaDto, userId: string): Promise<{ entregas: any[], pdf: Buffer }> {
         const { encuestaId, cantidad } = createBulkDto;
 
