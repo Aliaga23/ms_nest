@@ -214,4 +214,45 @@ export class EntregaController {
         );
         res.send(pdf);
     }
+
+    @Post('bulk-audio')
+    @ApiOperation({ summary: 'Generar entregas masivas para Audio' })
+    @ApiResponse({ 
+        status: 201, 
+        description: 'Entregas creadas exitosamente',
+    })
+    @ApiBody({
+        description: 'Genera múltiples entregas para canal Audio',
+        type: CreateBulkEntregaDto,
+        examples: {
+            ejemplo: {
+                summary: 'Generar 50 entregas para Audio',
+                value: {
+                    encuestaId: '5e4b4a32-1f3b-4971-9f0b-4a90f05ac2b7',
+                    cantidad: 50,
+                },
+            },
+        },
+    })
+    async createBulkAudio(
+        @Body() createBulkDto: CreateBulkEntregaDto,
+        @AuthHeader() authHeader: string,
+    ) {
+        const userId = await this.extractUserId(authHeader);
+        return this.entregaService.createBulkForAudio(createBulkDto, userId);
+    }
+
+    @Get('bulk-audio/:encuestaId')
+    @ApiOperation({ summary: 'Obtener todas las entregas de Audio de una encuesta' })
+    @ApiResponse({ 
+        status: 200, 
+        description: 'Lista de entregas de Audio',
+    })
+    async getBulkAudio(
+        @Param('encuestaId') encuestaId: string,
+        @AuthHeader() authHeader: string,
+    ) {
+        const userId = await this.extractUserId(authHeader);
+        return this.entregaService.getBulkAudioEntregas(encuestaId, userId);
+    }
 }

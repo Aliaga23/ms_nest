@@ -472,20 +472,6 @@ export class EntregaService {
             throw new BadRequestException('La encuesta debe tener el canal Ocr');
         }
 
-        // Verificar si ya existen entregas OCR para esta encuesta
-        const existingEntregas = await this.prisma.entrega.findFirst({
-            where: { 
-                encuestaId,
-                destinatario: {
-                    email: 'ocr@system.local'
-                }
-            },
-        });
-
-        if (existingEntregas) {
-            throw new BadRequestException('Ya se han generado entregas OCR para esta encuesta. No se pueden crear más.');
-        }
-
         // Obtener preguntas de la encuesta
         const preguntas = await this.prisma.pregunta.findMany({
             where: { encuestaId },
@@ -542,6 +528,127 @@ export class EntregaService {
         return {
             entregas,
             pdf: pdfBuffer,
+        };
+    }
+
+    async createBulkForAudio(createBulkDto: CreateBulkEntregaDto, userId: string) {
+        const { encuestaId, cantidad } = createBulkDto;
+
+        // Validar que la encuesta existe y pertenece al usuario
+        const encuesta = await this.prisma.encuesta.findFirst({
+            where: { id: encuestaId, user_id: userId },
+            include: {
+                canal: true,
+            },
+        });
+
+        if (!encuesta) {
+            throw new NotFoundException('Encuesta no encontrada o sin permisos');
+        }
+
+        // Validar que el canal sea Audio
+        if (encuesta.canal?.id !== 'b8c7779c-37c7-4331-8dd5-9f07c1a3ade0') {
+            throw new BadRequestException('La encuesta debe tener el canal Audio');
+        }
+
+        // Crear un destinatario genérico para Audio si no existe
+        let destinatarioAudio = await this.prisma.destinatario.findFirst({
+            where: { 
+                email: 'audio@system.local',
+                user_id: userId 
+            },
+        });
+
+        if (!destinatarioAudio) {
+            destinatarioAudio = await this.prisma.destinatario.create({
+                data: {
+                    nombre: 'Audio System',
+                    email: 'audio@system.local',
+                    telefono: '0000000000',
+                    user_id: userId,
+                },
+            });
+        }
+
+        // Crear entregas en la base de datos
+        const entregas: any[] = [];
+        for (let i = 0; i < cantidad; i++) {
+            const entrega = await this.prisma.entrega.create({
+                data: {
+                    encuestaId,
+                    destinatarioId: destinatarioAudio.id,
+                    enviado_en: new Date(),
+                },
+            });
+            entregas.push(entrega);
+        }
+
+        return {
+            message: 'Entregas de Audio creadas exitosamente',
+            cantidad: entregas.length,
+            encuestaId,
+            entregas: entregas.map(e => ({
+                id: e.id,
+                enviado_en: e.enviado_en,
+            })),
+        };
+    }
+
+    async getBulkAudioEntregas(encuestaId: string, userId: string) {
+        // Validar que la encuesta existe y pertenece al usuario
+        const encuesta = await this.prisma.encuesta.findFirst({
+            where: { id: encuestaId, user_id: userId },
+            include: {
+                canal: true,
+            },
+        });
+
+        if (!encuesta) {
+            throw new NotFoundException('Encuesta no encontrada o sin permisos');
+        }
+
+        // Validar que el canal sea Audio
+        if (encuesta.canal?.id !== 'b8c7779c-37c7-4331-8dd5-9f07c1a3ade0') {
+            throw new BadRequestException('La encuesta debe tener el canal Audio');
+        }
+
+        // Obtener todas las entregas de Audio
+        const entregas = await this.prisma.entrega.findMany({
+            where: {
+                encuestaId,
+                destinatario: {
+                    email: 'audio@system.local'
+                }
+            },
+            include: {
+                respuestas: {
+                    include: {
+                        pregunta: true,
+                        opcion_encuesta: true,
+                    },
+                },
+            },
+            orderBy: {
+                enviado_en: 'asc',
+            },
+        });
+
+        return {
+            encuesta: {
+                id: encuesta.id,
+                nombre: encuesta.nombre,
+                descripcion: encuesta.descripcion,
+            },
+            totalEntregas: entregas.length,
+            entregasRespondidas: entregas.filter(e => e.respondido_en !== null).length,
+            entregasPendientes: entregas.filter(e => e.respondido_en === null).length,
+            entregas: entregas.map(e => ({
+                id: e.id,
+                enviado_en: e.enviado_en,
+                respondido_en: e.respondido_en,
+                estado: e.respondido_en ? 'Respondida' : 'Pendiente',
+                totalRespuestas: e.respuestas.length,
+            })),
         };
     }
 }
